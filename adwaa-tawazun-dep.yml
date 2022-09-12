@@ -18,7 +18,7 @@ spec:
         name: adwaa-web
     spec:
       containers:
-        - image: adwaa/tawazun-img
+        - image: raghaddevops/tawazun-sda:2.0
           name: tawazun-web 
           env:
             - name: DB_URL
