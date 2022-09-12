@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+    name: adwaa-sql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+      name: adwaa-sql
+  template:
+    metadata:
+      labels:
+        app: mysql
+        name: adwaa-sql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:latest
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: DevOps2022
+            - name: MYSQL_DATABASE
+              value: tawazun  
+          ports:
+            - containerPort: 3306
+              name: mysql
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: aws-pvc
+      volumes:
+        - name: aws-pvc
+          persistentVolumeClaim:
+            claimName: aws-ebs-dynamic-pvc-adwaa
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+ selector:
+    app: mysql
+    name: adwaa-sql
+ type: ClusterIP
+ ports:
+    - protocol: TCP
+      port: 3306
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: aws-standard
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+  fsType: ext4
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aws-ebs-dynamic-pvc-adwaa
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3Gi
+  storageClassName: aws-standard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tawazun-web
+  labels:
+    app: tawazun-web
+    name: adwaa-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tawazun-web
+      name: adwaa-web
+  template:
+    metadata:
+      labels:
+        app: tawazun-web
+        name: adwaa-web
+    spec:
+      containers:
+        - image: adwaa/tawazun-img
+          name: tawazun-web 
+          env:
+            - name: DB_URL
+              value: mysql
+            - name: DB_PORT
+              value: '3306'  
+            - name: DB_NAME
+              value: tawazun  
+            - name: DB_USERNAME
+              value: root  
+            - name: DB_PASSWORD
+              value: DevOps2022
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tawazun-serv
+spec:
+ selector:
+   app: tawazun-web
+   name: adwaa-web
+ type: NodePort
+ ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 31040
